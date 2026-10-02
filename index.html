@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>النظام المحاسبي المتكامل</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body>
+
+    <!-- شاشة الترحيب والتثبيت التفاعلية -->
+    <div id="installModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); z-index: 9999; padding: 20px; color: #fff; overflow-y: auto;">
+        <div style="background: #ffffff; color: #1e293b; max-width: 420px; margin: 30px auto; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+            <img src="icon.svg" style="width: 70px; height: 70px; border-radius: 12px; margin-bottom: 10px;" alt="Logo">
+            <h2 style="color: #0284c7; font-size: 20px; margin-bottom: 8px;">أهلاً بك في النظام المحاسبي! 👋</h2>
+            <p style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 15px;">
+                نظامك المتكامل لإدارة الخزينة، المبيعات، والمشتريات يعمل بسرعة فائقة وبدون الحاجة للإنترنت.
+            </p>
+
+            <button id="btnInstallApp" style="background: #16a34a; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                📲 تثبيت التطبيق على الموبايل
+            </button>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 12px; text-align: right; color: #334155; margin-bottom: 15px;">
+                <strong style="color: #0f172a; display: block; margin-bottom: 4px;">⚠️ إرشادات تثبيت هامة:</strong>
+                1. إذا لم يعمل زر التثبيت أعلاه، اضغط على <b>خيارات المتصفح (⋮)</b> بأعلى الشاشة.<br>
+                2. اختر <b>"إضافة إلى الشاشة الرئيسية" (Add to Home screen)</b> أو <b>"تثبيت التطبيق"</b>.<br>
+                3. وافق على التثبيت وسيظهر التطبيق فوراً بجانب تطبيقاتك!
+            </div>
+
+            <button onclick="closeInstallModal()" style="background: #cbd5e1; color: #334155; border: none; padding: 8px; border-radius: 6px; width: 100%; font-size: 12px;">متابعة إلى التطبيق 👈</button>
+        </div>
+    </div>
+
+    <!-- الشريط الدعائي وشريط حالة التفعيل يضاف تلقائياً هنا عبر db.js -->
+
+    <h2 class="no-print" style="margin-top: 10px;">📊 لوحة التحكم الرئيسية</h2>
+
+    <!-- شريط التنقل الموحد -->
+    <div class="nav-tabs no-print">
+        <a href="index.html" class="tab-link active">🏠 الرئيسية</a>
+        <a href="treasury.html" class="tab-link">💰 الخزينة</a>
+        <a href="purchases.html" class="tab-link">🛒 المشتريات</a>
+        <a href="sales.html" class="tab-link">🛍️ المبيعات</a>
+        <a href="suppliers.html" class="tab-link">👥 الموردين</a>
+        <a href="stock.html" class="tab-link">📦 الجرد</a>
+        <a href="settings.html" class="tab-link">⚙️ الإعدادات</a>
+    </div>
+
+    <!-- الملخص المالي العام -->
+    <div class="card no-print">
+        <h3>💰 الملخص المالي العام</h3>
+        <div class="grid-3">
+            <div class="stat-box balance">
+                <small>رصيد الخزينة الحالي</small>
+                <div id="homeTreasury" style="font-size: 16px; font-weight: bold;">0.00 ج.م</div>
+            </div>
+            <div class="stat-box in">
+                <small>مستحقات لنا عند العملاء</small>
+                <div id="homeCustDebts" style="font-size: 16px; font-weight: bold;">0.00 ج.م</div>
+            </div>
+            <div class="stat-box out">
+                <small>مديونيات علينا للموردين</small>
+                <div id="homeSuppDebts" style="font-size: 16px; font-weight: bold;">0.00 ج.م</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الوصول السريع للخدمات -->
+    <div class="card no-print">
+        <h3>🚀 الوصول السريع للأقسام</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <a href="sales.html" style="text-decoration: none;"><button style="background: #16a34a;">🛍️ فاتورة مبيعات جديدة</button></a>
+            <a href="purchases.html" style="text-decoration: none;"><button style="background: #0284c7;">🛒 فاتورة مشتريات جديدة</button></a>
+            <a href="treasury.html" style="text-decoration: none;"><button style="background: #d97706;">💰 تسجيل حركة خزينة</button></a>
+            <a href="stock.html" style="text-decoration: none;"><button style="background: #475569;">📦 عرض المخزن والجرد</button></a>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        // تسجيل الـ Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installModal').style.display = 'block';
+        });
+
+        document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    document.getElementById('installModal').style.display = 'none';
+                }
+                deferredPrompt = null;
+            } else {
+                alert("يرجى استخدام خيارات المتصفح (⋮) ثم اختيار 'إضافة إلى الشاشة الرئيسية'.");
+            }
+        });
+
+        function closeInstallModal() {
+            document.getElementById('installModal').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            renderHomeStats();
+        });
+
+        function renderHomeStats() {
+            const db = loadDB();
+
+            const balance = getBalance(db);
+            document.getElementById('homeTreasury').innerText = balance.toFixed(2) + ' ج.م';
+
+            let custTotal = 0;
+            const custs = db.customersDebts || {};
+            for (let name in custs) {
+                custTotal += custs[name].debt || 0;
+            }
+            document.getElementById('homeCustDebts').innerText = custTotal.toFixed(2) + ' ج.م';
+
+            let suppTotal = 0;
+            const supps = db.suppliersDebts || {};
+            for (let name in supps) {
+                suppTotal += supps[name].debt || 0;
+            }
+            document.getElementById('homeSuppDebts').innerText = suppTotal.toFixed(2) + ' ج.م';
+        }
+    </script>
+</body>
+</html>

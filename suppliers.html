@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حسابات الموردين والعملاء</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h2 class="no-print">👥 حسابات الموردين والعملاء (الآجل)</h2>
+
+    <!-- شريط التنقل الموحد -->
+    <div class="nav-tabs no-print">
+        <a href="index.html" class="tab-link">🏠 الرئيسية</a>
+        <a href="treasury.html" class="tab-link">💰 الخزينة</a>
+        <a href="purchases.html" class="tab-link">🛒 المشتريات</a>
+        <a href="sales.html" class="tab-link">🛍️ المبيعات</a>
+        <a href="suppliers.html" class="tab-link active">👥 الموردين</a>
+        <a href="stock.html" class="tab-link">📦 الجرد</a>
+        <a href="settings.html" class="tab-link">⚙️️ الإعدادات</a>
+    </div>
+
+    <!-- كارت مديونيات الموردين -->
+    <div class="card no-print">
+        <h3>🔴 مديونيات الموردين (مستحقات للموردين علينا)</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم المورد</th>
+                        <th>رقم الهاتف</th>
+                        <th>المبلغ المستحق</th>
+                        <th>سداد جزء/كل المديونية</th>
+                    </tr>
+                </thead>
+                <tbody id="suppliersTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- كارت مستحقات العملاء -->
+    <div class="card no-print">
+        <h3>🟢 مديونيات العملاء (فلوس لينا بره)</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم العميل</th>
+                        <th>رقم الهاتف</th>
+                        <th>المبلغ المتبقي</th>
+                        <th>تحصيل جزء/كل المديونية</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            renderDebts();
+        });
+
+        function renderDebts() {
+            const db = loadDB();
+
+            // 1. الموردين
+            const suppTbody = document.getElementById('suppliersTableBody');
+            suppTbody.innerHTML = '';
+            const supps = db.suppliersDebts || {};
+
+            for (let name in supps) {
+                const s = supps[name];
+                if (s.debt > 0) {
+                    suppTbody.innerHTML += `
+                        <tr>
+                            <td><b>${name}</b></td>
+                            <td>📞 ${s.phone}</td>
+                            <td><b style="color:red;">${s.debt.toFixed(2)} ج.م</b></td>
+                            <td>
+                                <button onclick="paySupplierDebt('${name}')" style="background:#16a34a; padding:5px 10px; font-size:12px;">سداد من الخزينة 💸</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            if (suppTbody.innerHTML === '') {
+                suppTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">لا توجد مديونيات للموردين 🎉</td></tr>';
+            }
+
+            // 2. العملاء
+            const custTbody = document.getElementById('customersTableBody');
+            custTbody.innerHTML = '';
+            const custs = db.customersDebts || {};
+
+            for (let name in custs) {
+                const c = custs[name];
+                if (c.debt > 0) {
+                    custTbody.innerHTML += `
+                        <tr>
+                            <td><b>${name}</b></td>
+                            <td>📞 ${c.phone}</td>
+                            <td><b style="color:green;">${c.debt.toFixed(2)} ج.م</b></td>
+                            <td>
+                                <button onclick="collectCustomerDebt('${name}')" style="background:#0284c7; padding:5px 10px; font-size:12px;">تحصيل بالخزينة 💵</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+            if (custTbody.innerHTML === '') {
+                custTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">لا توجد مديونيات على العملاء 🎉</td></tr>';
+            }
+        }
+
+        function paySupplierDebt(name) {
+            const db = loadDB();
+            const supp = db.suppliersDebts[name];
+            const amountStr = prompt(`أدخل المبلغ المراد سداده للمورد (${name}):\nالمستحق الحالي: ${supp.debt.toFixed(2)} ج.م`, supp.debt);
+            if (!amountStr) return;
+
+            const amount = parseFloat(amountStr);
+            if (isNaN(amount) || amount <= 0 || amount > supp.debt) {
+                return alert('⚠️ المبلغ غير صحيح أو يتجاوز المديونية!');
+            }
+
+            const currentBalance = getBalance(db);
+            if (currentBalance < amount) {
+                return alert(`⚠️ رصيد الخزينة الحالي (${currentBalance.toFixed(2)} ج.م) لا يكفي لسداد هذا المبلغ!`);
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('ar-EG') + ' ' + now.toLocaleTimeString('ar-EG');
+
+            // خصم من المديونية
+            supp.debt -= amount;
+            // تسجيل حركة صرف بالخزينة
+            db.transactions.push({
+                timeStr, type: 'OUT', amount, partyName: name, partyPhone: supp.phone,
+                note: `سداد مديونية توريد للمورد: ${name}`, imgData: ''
+            });
+
+            saveDB(db);
+            renderDebts();
+            alert('✅ تم سداد المبلغ وتسجيل الخروج من الخزينة بنجاح!');
+        }
+
+        function collectCustomerDebt(name) {
+            const db = loadDB();
+            const cust = db.customersDebts[name];
+            const amountStr = prompt(`أدخل المبلغ المراد تحصيله من العميل (${name}):\nالمتبقي عليه: ${cust.debt.toFixed(2)} ج.م`, cust.debt);
+            if (!amountStr) return;
+
+            const amount = parseFloat(amountStr);
+            if (isNaN(amount) || amount <= 0 || amount > cust.debt) {
+                return alert('⚠️ المبلغ غير صحيح أو يتجاوز المديونية!');
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('ar-EG') + ' ' + now.toLocaleTimeString('ar-EG');
+
+            // خصم من مديونية العميل
+            cust.debt -= amount;
+            // إيداع المبلغ بالخزينة
+            db.transactions.push({
+                timeStr, type: 'IN', amount, partyName: name, partyPhone: cust.phone,
+                note: `تحصيل مديونية بيع من العميل: ${name}`, imgData: ''
+            });
+
+            saveDB(db);
+            renderDebts();
+            alert('✅ تم تحصيل المبلغ وإضافته لرصيد الخزينة بنجاح!');
+        }
+    </script>
+</body>
+</html>

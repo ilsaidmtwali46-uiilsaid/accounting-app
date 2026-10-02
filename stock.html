@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قسم الجرد والمخزن</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h2 class="no-print">📦 إدارة الجرد والمخزن</h2>
+
+    <!-- شريط التنقل الموحد -->
+    <div class="nav-tabs no-print">
+        <a href="index.html" class="tab-link">🏠 الرئيسية</a>
+        <a href="treasury.html" class="tab-link">💰 الخزينة</a>
+        <a href="purchases.html" class="tab-link">🛒 المشتريات</a>
+        <a href="sales.html" class="tab-link">🛍️ المبيعات</a>
+        <a href="suppliers.html" class="tab-link">👥 الموردين</a>
+        <a href="stock.html" class="tab-link active">📦 الجرد</a>
+        <a href="settings.html" class="tab-link">⚙️ الإعدادات</a>
+    </div>
+
+    <!-- كارت تسجيل جرد فعلي -->
+    <div class="card no-print">
+        <h3>📝 تسجيل جرد فعلي جديد</h3>
+
+        <label>اختر الصنف من المخزن <span class="required-star">*</span>:</label>
+        <select id="stockItemSelect" onchange="updateSystemQtyInfo()">
+            <option value="">-- اختر الصنف --</option>
+        </select>
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label>الكمية بالسيستم (دفتري):</label>
+                <input type="number" id="sysQtyShow" placeholder="0" readonly style="background: #f1f5f9; font-weight: bold;">
+            </div>
+            <div style="flex: 1;">
+                <label>العدد الفعلي بالمخزن <span class="required-star">*</span>:</label>
+                <input type="number" id="actualQtyInput" placeholder="أدخل العدد الجردي">
+            </div>
+        </div>
+
+        <label>ملاحظات الجرد / السبب:</label>
+        <input type="text" id="stockNote" placeholder="سبب العجز أو الزيادة إن وجد">
+
+        <button onclick="addStockAudit()">تسجيل الجرد وتعديل الكمية ⚖️</button>
+    </div>
+
+    <!-- جدول سجل الجرد والمخزون الحالي -->
+    <div class="card no-print">
+        <h3>📊 حالة المخزون وسجل عمليات الجرد</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>الكمية بالسيستم</th>
+                        <th>سعر الشراء</th>
+                        <th>قيمة المخزون</th>
+                        <th>حالة الجرد الأخيرة</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadStockDropdown();
+            renderInventoryTable();
+        });
+
+        function loadStockDropdown() {
+            const db = loadDB();
+            const select = document.getElementById('stockItemSelect');
+            select.innerHTML = '<option value="">-- اختر الصنف --</option>';
+            
+            const inv = db.inventorySystem || {};
+            for (let name in inv) {
+                select.innerHTML += `<option value="${name}">${name}</option>`;
+            }
+        }
+
+        function updateSystemQtyInfo() {
+            const name = document.getElementById('stockItemSelect').value;
+            const db = loadDB();
+            if (name && db.inventorySystem && db.inventorySystem[name]) {
+                document.getElementById('sysQtyShow').value = db.inventorySystem[name].sysQty;
+            } else {
+                document.getElementById('sysQtyShow').value = 0;
+            }
+        }
+
+        function addStockAudit() {
+            const itemName = document.getElementById('stockItemSelect').value;
+            const actualQtyStr = document.getElementById('actualQtyInput').value;
+            const note = document.getElementById('stockNote').value.trim();
+
+            if (!itemName) return alert('⚠️ يرجى اختيار صنف لجرد الكمية.');
+            if (actualQtyStr === '' || isNaN(parseInt(actualQtyStr)) || parseInt(actualQtyStr) < 0) {
+                return alert('⚠️ يرجى إدخال العدد الفعلي للجرد بشكل صحيح.');
+            }
+
+            const actualQty = parseInt(actualQtyStr);
+            const db = loadDB();
+            const sysQty = db.inventorySystem[itemName].sysQty;
+            const diff = actualQty - sysQty;
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('ar-EG') + ' ' + now.toLocaleTimeString('ar-EG');
+
+            // تحديث الكمية بالسيستم لتطابق الجرد الفعلي
+            db.inventorySystem[itemName].sysQty = actualQty;
+
+            if (!db.stockList) db.stockList = [];
+            db.stockList.push({
+                timeStr, itemName, sysQty, actualQty, diff, note
+            });
+
+            saveDB(db);
+
+            document.getElementById('actualQtyInput').value = '';
+            document.getElementById('stockNote').value = '';
+            
+            updateSystemQtyInfo();
+            renderInventoryTable();
+
+            if (diff < 0) {
+                alert(`⚠️ تم تسجيل الجرد: يوجد عجز قدره (${Math.abs(diff)}) قطعة وتم تعديل المتاح بالمخزن.`);
+            } else if (diff > 0) {
+                alert(`✅ تم تسجيل الجرد: توجد زيادة قدرها (${diff}) قطعة وتم تعديل المتاح بالمخزن.`);
+            } else {
+                alert('✅ تم تسجيل الجرد: الكميات متطابقة تماماً بدون عجز أو زيادة!');
+            }
+        }
+
+        function renderInventoryTable() {
+            const db = loadDB();
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '';
+
+            const inv = db.inventorySystem || {};
+            const stockLogs = db.stockList || [];
+
+            for (let name in inv) {
+                const item = inv[name];
+                const totalValue = (item.sysQty * item.buyPrice).toFixed(2);
+                
+                // البحث عن آخر عملية جرد لهذا الصنف
+                const lastAudit = stockLogs.filter(s => s.itemName === name).pop();
+                let statusBadge = '<span class="badge-match">لم يجرد بعد</span>';
+
+                if (lastAudit) {
+                    if (lastAudit.diff < 0) {
+                        statusBadge = `<span class="badge-deficit">عجز (${lastAudit.diff})</span>`;
+                    } else if (lastAudit.diff > 0) {
+                        statusBadge = `<span class="badge-surplus">زيادة (+${lastAudit.diff})</span>`;
+                    } else {
+                        statusBadge = `<span class="badge-match">مطباق تماماً</span>`;
+                    }
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${name}</b></td>
+                        <td><b>${item.sysQty}</b> قطعة</td>
+                        <td>${item.buyPrice.toFixed(2)} ج.م</td>
+                        <td><b>${totalValue} ج.م</b></td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            }
+
+            if (tbody.innerHTML === '') {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد أصناف بالمخزن حالياً. أضف مشتريات أولاً 🛒</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html>

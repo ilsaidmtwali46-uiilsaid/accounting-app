@@ -1,0 +1,18 @@
+{
+  "name": "النظام المحاسبي المتكامل",
+  "short_name": "المحاسب الذكي",
+  "description": "برنامج إدارة المبيعات، المشتريات، الخزينة، والمخازن",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

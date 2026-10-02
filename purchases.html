@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قسم المشتريات والموردين</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h2 class="no-print">🛒 إدارة فواتير المشتريات</h2>
+
+    <!-- شريط التنقل الموحد -->
+    <div class="nav-tabs no-print">
+        <a href="index.html" class="tab-link">🏠 الرئيسية</a>
+        <a href="treasury.html" class="tab-link">💰 الخزينة</a>
+        <a href="purchases.html" class="tab-link active">🛒 المشتريات</a>
+        <a href="sales.html" class="tab-link">🛍️ المبيعات</a>
+        <a href="suppliers.html" class="tab-link">👥 الموردين</a>
+        <a href="stock.html" class="tab-link">📦 الجرد</a>
+        <a href="settings.html" class="tab-link">⚙️ الإعدادات</a>
+    </div>
+
+    <!-- نموذج إضافة فاتورة مشتريات -->
+    <div class="card no-print">
+        <h3>🛒 تسجيل فاتورة مشتريات جديدة</h3>
+        
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label>اسم المورد <span class="required-star">*</span>:</label>
+                <input type="text" id="suppName" placeholder="اسم الشركة / المورد">
+            </div>
+            <div style="flex: 1;">
+                <label>رقم هاتف المورد <span class="required-star">*</span>:</label>
+                <input type="tel" id="suppPhone" maxlength="11" placeholder="01xxxxxxxxx">
+            </div>
+        </div>
+
+        <label>اسم الصنف / بضاعة <span class="required-star">*</span>:</label>
+        <input type="text" id="itemName" placeholder="تفاصيل الصنف">
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label>الكمية <span class="required-star">*</span>:</label>
+                <input type="number" id="itemQty" placeholder="العدد" oninput="calcPurchaseTotal()">
+            </div>
+            <div style="flex: 1;">
+                <label>سعر الشراء للقطعة <span class="required-star">*</span>:</label>
+                <input type="number" id="itemPrice" placeholder="0.00" oninput="calcPurchaseTotal()">
+            </div>
+        </div>
+
+        <label>إجمالي الفاتورة:</label>
+        <input type="number" id="purchaseTotal" placeholder="0.00" readonly style="background: #f1f5f9; font-weight: bold;">
+
+        <label>طريقة الدفع:</label>
+        <select id="payType">
+            <option value="CASH">نقداً (خصم مباشر من الخزينة)</option>
+            <option value="CREDIT">آجل (تسجيل مديونية للمورد)</option>
+        </select>
+
+        <button onclick="addPurchaseInvoice()">حفظ الفاتورة وتحديث المخزن 📦</button>
+    </div>
+
+    <!-- جدول سجل المشتريات -->
+    <div class="card no-print">
+        <h3>📜 سجل فواتير المشتريات</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>المورد ورقم الهاتف</th>
+                        <th>الصنف</th>
+                        <th>الكمية</th>
+                        <th>الإجمالي</th>
+                        <th>طريقة الدفع</th>
+                    </tr>
+                </thead>
+                <tbody id="purchasesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            renderPurchases();
+        });
+
+        function calcPurchaseTotal() {
+            const qty = parseFloat(document.getElementById('itemQty').value) || 0;
+            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+            document.getElementById('purchaseTotal').value = (qty * price).toFixed(2);
+        }
+
+        function addPurchaseInvoice() {
+            const suppName = document.getElementById('suppName').value.trim();
+            const suppPhone = document.getElementById('suppPhone').value.trim();
+            const itemName = document.getElementById('itemName').value.trim();
+            const qty = parseInt(document.getElementById('itemQty').value);
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            const total = parseFloat(document.getElementById('purchaseTotal').value);
+            const payType = document.getElementById('payType').value;
+
+            if (!suppName || !isValidEgyptianPhone(suppPhone)) return alert('⚠️ يرجى التأكد من اسم المورد ورقم الهاتف (11 رقم).');
+            if (!itemName) return alert('⚠️ يرجى إدخال اسم الصنف.');
+            if (isNaN(qty) || qty <= 0) return alert('⚠️️ يرجى إدخال كمية صحيحة.');
+            if (isNaN(price) || price <= 0) return alert('⚠️ يرجى إدخال سعر صحيح.');
+
+            const db = loadDB();
+
+            if (payType === 'CASH') {
+                const currentBalance = getBalance(db);
+                if (currentBalance < total) {
+                    return alert(`⚠️ رصيد الخزينة الحالي (${currentBalance.toFixed(2)} ج.م) لا يكفي لدفع الفاتورة نقداً!`);
+                }
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('ar-EG') + ' ' + now.toLocaleTimeString('ar-EG');
+
+            // إضافة الصنف للمخزن
+            if (!db.inventorySystem) db.inventorySystem = {};
+            if (!db.inventorySystem[itemName]) {
+                db.inventorySystem[itemName] = { sysQty: 0, buyPrice: price };
+            }
+            db.inventorySystem[itemName].sysQty += qty;
+            db.inventorySystem[itemName].buyPrice = price;
+
+            if (payType === 'CASH') {
+                // خصم المبلغ من الخزينة
+                db.transactions.push({
+                    timeStr, type: 'OUT', amount: total, partyName: suppName, partyPhone: suppPhone,
+                    note: `فاتورة مشتريات نقداً: ${itemName} (عدد ${qty})`, imgData: ''
+                });
+            } else {
+                // إضافة مديونية للمورد
+                if (!db.suppliersDebts) db.suppliersDebts = {};
+                if (!db.suppliersDebts[suppName]) db.suppliersDebts[suppName] = { phone: suppPhone, debt: 0 };
+                db.suppliersDebts[suppName].debt += total;
+            }
+
+            if (!db.purchasesList) db.purchasesList = [];
+            db.purchasesList.push({ timeStr, suppName, suppPhone, itemName, qty, price, total, payType });
+
+            saveDB(db);
+
+            document.getElementById('suppName').value = '';
+            document.getElementById('suppPhone').value = '';
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '';
+            document.getElementById('itemPrice').value = '';
+            document.getElementById('purchaseTotal').value = '';
+
+            renderPurchases();
+            alert('✅ تم حفظ فاتورة المشتريات وتحديث المخزن بنجاح!');
+        }
+
+        function renderPurchases() {
+            const db = loadDB();
+            const tbody = document.getElementById('purchasesTableBody');
+            tbody.innerHTML = '';
+
+            const list = db.purchasesList || [];
+            list.forEach(p => {
+                const payBadge = p.payType === 'CASH' ? '<span style="color:green; font-weight:bold;">نقداً</span>' : '<span style="color:red; font-weight:bold;">آجل</span>';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.timeStr}</td>
+                        <td><b>${p.suppName}</b><br><small>📞 ${p.suppPhone}</small></td>
+                        <td>${p.itemName}</td>
+                        <td><b>${p.qty}</b></td>
+                        <td><b>${p.total.toFixed(2)} ج.م</b></td>
+                        <td>${payBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>

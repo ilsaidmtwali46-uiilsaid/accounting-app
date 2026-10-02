@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="110" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="180" fill="#1e293b"/>
+  <path d="M140 340 L210 270 L280 300 L370 180" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="320,180 370,180 370,230" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="160" y="200" width="192" height="200" rx="24" fill="#0284c7"/>
+  <rect x="184" y="224" width="144" height="48" rx="10" fill="#38bdf8"/>
+  <text x="310" y="258" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#0f172a" text-anchor="end">12,500$</text>
+  <circle cx="204" cy="304" r="12" fill="#ffffff"/>
+  <circle cx="256" cy="304" r="12" fill="#ffffff"/>
+  <circle cx="308" cy="304" r="12" fill="#ffffff"/>
+  <circle cx="204" cy="344" r="12" fill="#ffffff"/>
+  <circle cx="256" cy="344" r="12" fill="#ffffff"/>
+  <circle cx="308" cy="344" r="12" fill="#eab308"/>
+</svg>

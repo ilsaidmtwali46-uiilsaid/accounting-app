@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعدادات النظام والنسخ الاحتياطي</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h2>⚙️ إعدادات النظام وأمان البيانات</h2>
+
+    <div class="nav-tabs">
+        <a href="index.html" class="tab-link">🏠 الرئيسية</a>
+        <a href="treasury.html" class="tab-link">💰 الخزينة</a>
+        <a href="purchases.html" class="tab-link">🛒 المشتريات</a>
+        <a href="sales.html" class="tab-link">🛍️ المبيعات</a>
+        <a href="suppliers.html" class="tab-link">👥 الموردين</a>
+        <a href="stock.html" class="tab-link">📦 الجرد</a>
+        <a href="settings.html" class="tab-link active">⚙️ الإعدادات</a>
+    </div>
+
+    <div class="card">
+        <h3>🔒 حماية النظام بكلمة سر</h3>
+        <label>كلمة السر الحالية (إن وجدت):</label>
+        <input type="password" id="oldPass" placeholder="تترك فارغة إذا لم تكن مفعّلة">
+
+        <label>كلمة السر الجديدة:</label>
+        <input type="password" id="newPass" placeholder="أدخل كلمة سر جديدة">
+
+        <button onclick="changePassword()" style="background: #0284c7;">حفظ كلمة السر 🔑</button>
+        <button onclick="removePassword()" style="background: #dc2626; margin-top: 5px;">إلغاء كلمة السر 🔓</button>
+    </div>
+
+    <div class="card">
+        <h3>💾 النسخ الاحتياطي واستعادة البيانات (Backup)</h3>
+        <p style="color: #64748b; font-size: 13px;">يمكنك تصدير كلاً من (الحسابات، المشتريات، المبيعات والمخزن) كملف حماية، واستعادته في أي وقت.</p>
+
+        <button onclick="exportBackup()" style="background: #16a34a;">📥 تصدير نسخة احتياطية للحفظ على الهاتف</button>
+
+        <hr style="margin: 15px 0;">
+
+        <label>استرجاع نسخة احتياطية من ملف:</label>
+        <input type="file" id="importFile" accept=".json">
+        <button onclick="importBackup()" style="background: #d97706;">📤 استرجاع البيانات من الملف</button>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        function changePassword() {
+            const db = loadDB();
+            const oldPass = document.getElementById('oldPass').value;
+            const newPass = document.getElementById('newPass').value;
+
+            if (db.appPassword && db.appPassword !== oldPass) {
+                return alert('⚠️ كلمة السر الحالية غير صحيحة!');
+            }
+            if (!newPass) return alert('⚠️ يرجى إدخال كلمة سر جديدة.');
+
+            db.appPassword = newPass;
+            saveDB(db);
+            alert('✅ تم تغيير كلمة السر بنجاح!');
+            document.getElementById('oldPass').value = '';
+            document.getElementById('newPass').value = '';
+        }
+
+        function removePassword() {
+            const db = loadDB();
+            const oldPass = document.getElementById('oldPass').value;
+
+            if (db.appPassword && db.appPassword !== oldPass) {
+                return alert('⚠️ كلمة السر الحالية غير صحيحة!');
+            }
+
+            delete db.appPassword;
+            saveDB(db);
+            alert('✅ تم إلغاء حماية كلمة السر بنجاح!');
+        }
+
+        function exportBackup() {
+            const db = loadDB();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const downloadAnchor = document.createElement('a');
+            const fileName = `نسخة_احتياطية_المحاسب_${new Date().toISOString().slice(0,10)}.json`;
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", fileName);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackup() {
+            const fileInput = document.getElementById('importFile');
+            if (!fileInput.files || !fileInput.files[0]) {
+                return alert('⚠️ يرجى اختيار ملف النسخة الاحتياطية أولاً.');
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const importedDB = JSON.parse(e.target.result);
+                    saveDB(importedDB);
+                    alert('✅ تم استرجاع النسخة الاحتياطية بنجاح!');
+                    location.reload();
+                } catch (err) {
+                    alert('⚠️ الملف المختار غير صالح أو تالف.');
+                }
+            };
+            reader.readAsText(fileInput.files[0]);
+        }
+    </script>
+</body>
+</html>

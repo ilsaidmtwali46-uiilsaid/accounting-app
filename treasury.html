@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الخزينة والتصنيفات</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h2 class="no-print">💰 حركة الخزينة والنقدية</h2>
+
+    <!-- شريط التنقل الموحد -->
+    <div class="nav-tabs no-print">
+        <a href="index.html" class="tab-link">🏠 الرئيسية</a>
+        <a href="treasury.html" class="tab-link active">💰 الخزينة</a>
+        <a href="purchases.html" class="tab-link">🛒 المشتريات</a>
+        <a href="sales.html" class="tab-link">🛍️ المبيعات</a>
+        <a href="suppliers.html" class="tab-link">👥 الموردين</a>
+        <a href="stock.html" class="tab-link">📦 الجرد</a>
+        <a href="settings.html" class="tab-link">⚙️ الإعدادات</a>
+    </div>
+
+    <!-- كارت الإحصائيات -->
+    <div class="card no-print">
+        <h3>📊 ملخص الخزينة الحالي</h3>
+        <div class="grid-3">
+            <div class="stat-box in">
+                <small>إجمالي المقبوضات</small>
+                <div id="statIn" style="font-size: 16px; font-weight: bold;">0.00 ج.م</div>
+            </div>
+            <div class="stat-box out">
+                <small>إجمالي المصروفات</small>
+                <div id="statOut" style="font-size: 16px; font-weight: bold;">0.00 ج.م</div>
+            </div>
+            <div class="stat-box balance">
+                <small>رصيد الخزينة الحالي</small>
+                <div id="statBalance" style="font-size: 16px; font-weight: bold;">0.00 ج.م</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نموذج إضافة حركة جديدة -->
+    <div class="card no-print">
+        <h3>➕ تسجيل حركة خزينة جديدة</h3>
+        
+        <label>نوع الحركة <span class="required-star">*</span>:</label>
+        <select id="transType">
+            <option value="IN">قبض / إيداع (+)</option>
+            <option value="OUT">صرف / إخراج (-)</option>
+        </select>
+
+        <label>المبلغ (ج.م) <span class="required-star">*</span>:</label>
+        <input type="number" id="transAmount" placeholder="0.00" step="0.01">
+
+        <label>جهة التعامل / الاسم <span class="required-star">*</span>:</label>
+        <input type="text" id="partyName" placeholder="مثال: محمد أحمد / عميل / مصاريف كهرباء">
+
+        <label>رقم الهاتف <span class="required-star">*</span>:</label>
+        <input type="tel" id="partyPhone" maxlength="11" placeholder="01xxxxxxxxx">
+
+        <label>البيان / ملاحظات:</label>
+        <input type="text" id="transNote" placeholder="تفاصيل الحركة">
+
+        <label>إرفاق صورة إيصال (اختياري):</label>
+        <input type="file" id="transImg" accept="image/*">
+
+        <button onclick="addTreasuryTransaction()">حفظ الحركة بالخزينة 💾</button>
+    </div>
+
+    <!-- جدول الحركات -->
+    <div class="card no-print">
+        <h3>📜 سجل حركات الخزينة</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>الجهة والهاتف</th>
+                        <th>المبلغ</th>
+                        <th>البيان</th>
+                        <th>الصورة</th>
+                    </tr>
+                </thead>
+                <tbody id="treasuryTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            renderTreasury();
+        });
+
+        function addTreasuryTransaction() {
+            const type = document.getElementById('transType').value;
+            const amount = parseFloat(document.getElementById('transAmount').value);
+            const partyName = document.getElementById('partyName').value.trim();
+            const partyPhone = document.getElementById('partyPhone').value.trim();
+            const note = document.getElementById('transNote').value.trim();
+            const imgInput = document.getElementById('transImg');
+
+            if (isNaN(amount) || amount <= 0) return alert('⚠️ يرجى كتابة مبلغ صحيح.');
+            if (!partyName) return alert('⚠️ يرجى كتابة اسم جهة التعامل.');
+            if (!isValidEgyptianPhone(partyPhone)) return alert('⚠️ رقم الهاتف يجب أن يكون رقم مصري مكون من 11 رقم يبدأ بـ 01.');
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('ar-EG') + ' ' + now.toLocaleTimeString('ar-EG');
+
+            const processSave = (imgData = '') => {
+                const db = loadDB();
+                db.transactions.push({ timeStr, type, amount, partyName, partyPhone, note, imgData });
+                saveDB(db);
+
+                document.getElementById('transAmount').value = '';
+                document.getElementById('partyName').value = '';
+                document.getElementById('partyPhone').value = '';
+                document.getElementById('transNote').value = '';
+                document.getElementById('transImg').value = '';
+
+                renderTreasury();
+                alert('✅ تم حفظ الحركة بنجاح!');
+            };
+
+            if (imgInput.files && imgInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) { processSave(e.target.result); };
+                reader.readAsDataURL(imgInput.files[0]);
+            } else {
+                processSave('');
+            }
+        }
+
+        function renderTreasury() {
+            const db = loadDB();
+            let totalIn = 0, totalOut = 0;
+            const tbody = document.getElementById('treasuryTableBody');
+            tbody.innerHTML = '';
+
+            db.transactions.forEach(t => {
+                if (t.type === 'IN') totalIn += t.amount;
+                if (t.type === 'OUT') totalOut += t.amount;
+
+                const typeBadge = t.type === 'IN' 
+                    ? '<span style="color:green; font-weight:bold;">قبض (+)</span>' 
+                    : '<span style="color:red; font-weight:bold;">صرف (-)</span>';
+                
+                const imgHtml = t.imgData 
+                    ? `<a href="${t.imgData}" target="_blank"><img src="${t.imgData}" class="receipt-img"></a>` 
+                    : 'لا يوجد';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${t.timeStr}</td>
+                        <td>${typeBadge}</td>
+                        <td><b>${t.partyName}</b><br><small>📞 ${t.partyPhone}</small></td>
+                        <td><b>${t.amount.toFixed(2)} ج.م</b></td>
+                        <td>${t.note || '-'}</td>
+                        <td>${imgHtml}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('statIn').innerText = totalIn.toFixed(2) + ' ج.م';
+            document.getElementById('statOut').innerText = totalOut.toFixed(2) + ' ج.م';
+            document.getElementById('statBalance').innerText = (totalIn - totalOut).toFixed(2) + ' ج.م';
+        }
+    </script>
+</body>
+</html>
