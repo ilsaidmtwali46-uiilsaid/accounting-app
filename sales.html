@@ -3,276 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قسم المبيعات والعملاء</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- مكتبة لتوليد وحفظ الفواتير PDF علي الهاتف -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <title>إدارة المبيعات</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 15px; background-color: #f8f9fa; }
+        .card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input, button { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th { background: #28a745; color: white; }
+        .btn-add { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-save { background: #28a745; color: white; border: none; font-weight: bold; margin-top: 15px; padding: 12px; cursor: pointer; }
+        .stock-badge { font-weight: bold; color: #dc3545; }
+        a { text-decoration: none; color: #007bff; font-weight: bold; display: inline-block; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
 
-    <h2 class="no-print">🛍️ إدارة فواتير المبيعات والعملاء</h2>
+    <a href="index.html">🏠 العودة للرئيسية</a>
+    <h2>🛍️ فاتورة مبيعات جديدة</h2>
 
-    <!-- شريط التنقل -->
-    <div class="nav-tabs no-print">
-        <a href="index.html" class="tab-link">🏠 الرئيسية</a>
-        <a href="treasury.html" class="tab-link">💰 الخزينة</a>
-        <a href="purchases.html" class="tab-link">🛒 المشتريات</a>
-        <a href="sales.html" class="tab-link active">🛍️ المبيعات</a>
-        <a href="suppliers.html" class="tab-link">👥 الموردين</a>
-        <a href="stock.html" class="tab-link">📦 الجرد</a>
-        <a href="settings.html" class="tab-link">⚙️ الإعدادات</a>
-    </div>
-
-    <div class="card no-print">
-        <h3>🛍️ إنشاء فاتورة مبيعات جديدة</h3>
-        
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 1;">
-                <label>اسم العميل <span class="required-star">*</span>:</label>
-                <input type="text" id="custName" placeholder="اسم العميل">
-            </div>
-            <div style="flex: 1;">
-                <label>رقم هاتف العميل <span class="required-star">*</span>:</label>
-                <input type="tel" id="custPhone" maxlength="11" placeholder="01xxxxxxxxx">
-            </div>
-        </div>
-
-        <label>اختر الصنف من المخزن <span class="required-star">*</span>:</label>
-        <select id="saleItemName" onchange="updateSaleItemInfo()">
-            <option value="">-- اختر الصنف --</option>
-        </select>
-
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 1;">
-                <label>المتاح بالمخزن:</label>
-                <input type="number" id="saleAvailableQty" placeholder="0" readonly style="background: #f1f5f9;">
-            </div>
-            <div style="flex: 1;">
-                <label>الكمية المباعة <span class="required-star">*</span>:</label>
-                <input type="number" id="saleQty" placeholder="العدد" oninput="calcSaleTotal()">
-            </div>
-            <div style="flex: 1;">
-                <label>سعر البيع للقطعة <span class="required-star">*</span>:</label>
-                <input type="number" id="salePrice" placeholder="0.00" oninput="calcSaleTotal()">
-            </div>
-        </div>
-
-        <label>إجمالي الفاتورة:</label>
-        <input type="number" id="saleTotal" placeholder="0.00" readonly style="background: #f1f5f9; font-weight: bold;">
-
-        <label>طريقة الدفع:</label>
-        <select id="salePayType">
-            <option value="CASH">نقداً (إيداع بالخزينة)</option>
-            <option value="CREDIT">آجل (مديونية على العميل)</option>
-        </select>
-
-        <button onclick="addSaleInvoice()" style="background: #16a34a;">حفظ الفاتورة وتحديث المخزن 💵</button>
-    </div>
-
-    <div class="card no-print">
-        <h3>📜 سجل فواتير المبيعات</h3>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>العميل ورقم الهاتف</th>
-                        <th>الصنف</th>
-                        <th>الكمية</th>
-                        <th>الإجمالي</th>
-                        <th>طريقة الدفع</th>
-                        <th>خيارات الفاتورة</th>
-                    </tr>
-                </thead>
-                <tbody id="salesTableBody"></tbody>
-            </table>
+    <!-- بيانات الفاتورة -->
+    <div class="card">
+        <div class="form-group">
+            <label>طريقة الدفع:</label>
+            <select id="paymentType">
+                <option value="cash">نقداً (تضاف للخزينة)</option>
+                <option value="credit">آجل (على الحساب)</option>
+            </select>
         </div>
     </div>
 
-    <!-- نموذج الفاتورة المخصص للطباعة والحفظ PDF -->
-    <div id="invoicePrintArea" class="invoice-box" style="display: none;">
-        <h2 style="text-align: center; margin-bottom: 5px;">🧾 فاتورة مبيعات</h2>
-        <p style="text-align: center; margin-top: 0; color: #64748b;">النظام المحاسبي المتكامل</p>
-        <hr>
-        <p><strong>تاريخ الفاتورة:</strong> <span id="invDate"></span></p>
-        <p><strong>اسم العميل:</strong> <span id="invCustName"></span> | <strong>الهاتف:</strong> <span id="invCustPhone"></span></p>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <!-- جدول البيع بالقوائم المترابطة -->
+    <div class="card">
+        <h3>🛒 أصناف البيع</h3>
+        <table id="salesTable">
             <thead>
-                <tr style="background: #e2e8f0;">
-                    <th style="border: 1px solid #cbd5e1; padding: 8px;">الصنف</th>
-                    <th style="border: 1px solid #cbd5e1; padding: 8px;">الكمية</th>
-                    <th style="border: 1px solid #cbd5e1; padding: 8px;">السعر</th>
-                    <th style="border: 1px solid #cbd5e1; padding: 8px;">الإجمالي</th>
+                <tr>
+                    <th>1. الصنف الأساسي</th>
+                    <th>2. النوع / الماركة</th>
+                    <th>3. الحجم / العبوة</th>
+                    <th>المتاح بالمخزن</th>
+                    <th>الكمية المطلوبة</th>
+                    <th>سعر البيع</th>
+                    <th>الإجمالي</th>
+                    <th>حذف</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr>
-                    <td style="border: 1px solid #cbd5e1; padding: 8px;" id="invItem"></td>
-                    <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;" id="invQty"></td>
-                    <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;" id="invPrice"></td>
-                    <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;" id="invTotal"></td>
-                </tr>
-            </tbody>
+            <tbody id="salesTableBody"></tbody>
         </table>
-        <h3 style="text-align: left; margin-top: 15px;">المبلغ الإجمالي: <span id="invGrandTotal"></span> ج.م</h3>
-        <p style="text-align: center; font-size: 12px; color: #64748b; margin-top: 30px;">شكراً لتعاملكم معنا!</p>
+
+        <button type="button" class="btn-add" onclick="addNewSalesRow()">➕ إضافة صنف جديد (زر +)</button>
     </div>
 
-    <script src="db.js"></script>
+    <!-- الإجمالي والتنفيذ -->
+    <div class="card">
+        <h3>إجمالي الفاتورة: <span id="grandTotal">0.00</span> ج.م</h3>
+        <button type="button" class="btn-save" onclick="saveSalesInvoice()">💾 إتمام البيع وخصم المخزون والإيداع بالخزينة</button>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="inventory.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            loadInventoryDropdown();
-            renderSales();
+        document.addEventListener("DOMContentLoaded", () => {
+            if (checkScreenAccess("sales", "المبيعات")) {
+                addNewSalesRow();
+            }
         });
 
-        function loadInventoryDropdown() {
-            const db = loadDB();
-            const select = document.getElementById('saleItemName');
-            select.innerHTML = '<option value="">-- اختر الصنف --</option>';
-            for (let name in db.inventorySystem) {
-                const item = db.inventorySystem[name];
-                if (item.sysQty > 0) {
-                    select.innerHTML += `<option value="${name}">${name} (المتاح: ${item.sysQty})</option>`;
-                }
-            }
-        }
-
-        function updateSaleItemInfo() {
-            const name = document.getElementById('saleItemName').value;
-            const db = loadDB();
-            if (name && db.inventorySystem[name]) {
-                document.getElementById('saleAvailableQty').value = db.inventorySystem[name].sysQty;
-            } else {
-                document.getElementById('saleAvailableQty').value = 0;
-            }
-        }
-
-        function calcSaleTotal() {
-            const qty = parseFloat(document.getElementById('saleQty').value) || 0;
-            const price = parseFloat(document.getElementById('salePrice').value) || 0;
-            document.getElementById('saleTotal').value = (qty * price).toFixed(2);
-        }
-
-        function addSaleInvoice() {
-            const custName = document.getElementById('custName').value.trim();
-            const custPhone = document.getElementById('custPhone').value.trim();
-            const itemName = document.getElementById('saleItemName').value;
-            const qty = parseInt(document.getElementById('saleQty').value);
-            const price = parseFloat(document.getElementById('salePrice').value);
-            const total = parseFloat(document.getElementById('saleTotal').value);
-            const payType = document.getElementById('salePayType').value;
-
-            if (!custName || !isValidEgyptianPhone(custPhone)) return alert('⚠️ يرجى التأكد من اسم العميل ورقم الهاتف (11 رقم).');
-            if (!itemName) return alert('⚠️ يرجى اختيار صنف من المخزن.');
-
-            const db = loadDB();
-            const availableQty = db.inventorySystem[itemName] ? db.inventorySystem[itemName].sysQty : 0;
-
-            if (isNaN(qty) || qty <= 0 || qty > availableQty) {
-                return alert(`⚠️ الكمية المطلوبة غير متاحة! المتاح حالياً بالمخزن: (${availableQty}) قطعة.`);
-            }
-            if (isNaN(price) || price <= 0) return alert('⚠️ يرجى كتابة سعر بيع صحيح.');
-
-            const now = new Date();
-            const timeStr = now.toLocaleDateString('ar-EG') + ' ' + now.toLocaleTimeString('ar-EG');
-
-            // خصم الكمية من المخزن
-            db.inventorySystem[itemName].sysQty -= qty;
-
-            if (payType === 'CASH') {
-                // إيداع نقدية في الخزينة
-                db.transactions.push({
-                    timeStr, type: 'IN', amount: total, partyName: custName, partyPhone: custPhone,
-                    note: `فاتورة بيع نقداً: ${itemName} (عدد ${qty})`, imgData: ''
-                });
-            } else {
-                // مديونية عميل
-                if (!db.customersDebts) db.customersDebts = {};
-                if (!db.customersDebts[custName]) db.customersDebts[custName] = { phone: custPhone, debt: 0 };
-                db.customersDebts[custName].debt += total;
-            }
-
-            if (!db.salesList) db.salesList = [];
-            const newInvoice = { id: Date.now(), dateStr: timeStr, custName, custPhone, itemName, qty, price, total, payType };
-            db.salesList.push(newInvoice);
-
-            saveDB(db);
-
-            document.getElementById('custName').value = '';
-            document.getElementById('custPhone').value = '';
-            document.getElementById('saleQty').value = '';
-            document.getElementById('salePrice').value = '';
-            document.getElementById('saleTotal').value = '';
-
-            loadInventoryDropdown();
-            renderSales();
-
-            if (confirm('✅ تم حفظ الفاتورة بنجاح!\nهل تريد عرض أو طباعة الفاتورة الآن؟')) {
-                openInvoiceActions(newInvoice.id);
-            }
-        }
-
-        function renderSales() {
-            const db = loadDB();
+        function addNewSalesRow() {
             const tbody = document.getElementById('salesTableBody');
-            tbody.innerHTML = '';
+            const rowId = 'srow_' + Date.now() + Math.random().toString(36).substr(2, 3);
+            const tr = document.createElement('tr');
+            tr.id = rowId;
 
-            const list = db.salesList || [];
-            list.forEach(s => {
-                const payBadge = s.payType === 'CASH' ? '<span style="color:green; font-weight:bold;">نقداً</span>' : '<span style="color:red; font-weight:bold;">آجل</span>';
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${s.dateStr}</td>
-                        <td><b>${s.custName}</b><br><small>📞 ${s.custPhone}</small></td>
-                        <td>${s.itemName}</td>
-                        <td><b>${s.qty}</b></td>
-                        <td><b>${s.total.toFixed(2)} ج.م</b></td>
-                        <td>${payBadge}</td>
-                        <td>
-                            <button onclick="openInvoiceActions(${s.id})" style="padding: 4px 8px; font-size: 12px; background: #0284c7;">🖨️ طباعة / حفظ</button>
-                        </td>
-                    </tr>
-                `;
+            tr.innerHTML = `
+                <td><select class="sel-cat" onchange="onSelectCategory('${rowId}')"><option value="">-- اختر --</option></select></td>
+                <td><select class="sel-type" onchange="onSelectType('${rowId}')" disabled><option value="">-- اختر النوع --</option></select></td>
+                <td><select class="sel-size" onchange="onSelectSize('${rowId}')" disabled><option value="">-- اختر الحجم --</option></select></td>
+                <td><span class="stock-badge stock-val">0</span></td>
+                <td><input type="number" class="item-qty" value="1" min="1" oninput="calcSalesRowTotal('${rowId}')"></td>
+                <td><input type="number" class="item-price" value="0" step="0.5" oninput="calcSalesRowTotal('${rowId}')"></td>
+                <td class="item-total">0.00</td>
+                <td><button type="button" style="background:#dc3545;color:#fff;border:none;" onclick="removeRow('${rowId}')">❌</button></td>
+            `;
+
+            tbody.appendChild(tr);
+
+            const stock = getStockData();
+            const categories = [...new Set(stock.map(i => i.category))];
+            const selCat = tr.querySelector('.sel-cat');
+            categories.forEach(c => {
+                selCat.innerHTML += `<option value="${c}">${c}</option>`;
             });
         }
 
-        function openInvoiceActions(id) {
-            const db = loadDB();
-            const inv = (db.salesList || []).find(x => x.id === id);
-            if (!inv) return;
+        function onSelectCategory(rowId) {
+            const tr = document.getElementById(rowId);
+            const cat = tr.querySelector('.sel-cat').value;
+            const selType = tr.querySelector('.sel-type');
+            const selSize = tr.querySelector('.sel-size');
 
-            document.getElementById('invDate').innerText = inv.dateStr;
-            document.getElementById('invCustName').innerText = inv.custName;
-            document.getElementById('invCustPhone').innerText = inv.custPhone;
-            document.getElementById('invItem').innerText = inv.itemName;
-            document.getElementById('invQty').innerText = inv.qty;
-            document.getElementById('invPrice').innerText = inv.price.toFixed(2) + ' ج.م';
-            document.getElementById('invTotal').innerText = inv.total.toFixed(2) + ' ج.م';
-            document.getElementById('invGrandTotal').innerText = inv.total.toFixed(2);
+            selType.innerHTML = '<option value="">-- اختر النوع --</option>';
+            selSize.innerHTML = '<option value="">-- اختر الحجم --</option>';
+            selSize.disabled = true;
 
-            const choice = prompt("اختر نوع الإجراء المطلوب:\n1 - 🖨️ طباعة الفاتورة\n2 - 📥 حفظ الفاتورة كملف PDF على الهاتف\n\nأدخل (1) أو (2):", "1");
-
-            const printBox = document.getElementById('invoicePrintArea');
-            printBox.style.display = 'block';
-
-            if (choice === '1') {
-                window.print();
-                printBox.style.display = 'none';
-            } else if (choice === '2') {
-                const opt = {
-                    margin:       10,
-                    filename:     `فاتورة_${inv.custName}_${inv.id}.pdf`,
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2 },
-                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                html2pdf().set(opt).from(printBox).save().then(() => {
-                    printBox.style.display = 'none';
-                });
-            } else {
-                printBox.style.display = 'none';
+            if (!cat) {
+                selType.disabled = true;
+                return;
             }
+
+            const stock = getStockData();
+            const types = [...new Set(stock.filter(i => normalizeText(i.category) === normalizeText(cat)).map(i => i.type))];
+            types.forEach(t => selType.innerHTML += `<option value="${t}">${t}</option>`);
+            selType.disabled = false;
+        }
+
+        function onSelectType(rowId) {
+            const tr = document.getElementById(rowId);
+            const cat = tr.querySelector('.sel-cat').value;
+            const type = tr.querySelector('.sel-type').value;
+            const selSize = tr.querySelector('.sel-size');
+
+            selSize.innerHTML = '<option value="">-- اختر الحجم --</option>';
+
+            if (!type) {
+                selSize.disabled = true;
+                return;
+            }
+
+            const stock = getStockData();
+            const sizes = [...new Set(stock.filter(i => normalizeText(i.category) === normalizeText(cat) && normalizeText(i.type) === normalizeText(type)).map(i => i.size))];
+            sizes.forEach(s => selSize.innerHTML += `<option value="${s}">${s}</option>`);
+            selSize.disabled = false;
+        }
+
+        function onSelectSize(rowId) {
+            const tr = document.getElementById(rowId);
+            const cat = tr.querySelector('.sel-cat').value;
+            const type = tr.querySelector('.sel-type').value;
+            const size = tr.querySelector('.sel-size').value;
+
+            const stock = getStockData();
+            const item = stock.find(i => normalizeText(i.category) === normalizeText(cat) && normalizeText(i.type) === normalizeText(type) && normalizeText(i.size) === normalizeText(size));
+
+            if (item) {
+                tr.querySelector('.stock-val').innerText = item.quantity;
+                tr.querySelector('.item-price').value = item.sellPrice || 0;
+                calcSalesRowTotal(rowId);
+            }
+        }
+
+        function calcSalesRowTotal(rowId) {
+            const tr = document.getElementById(rowId);
+            const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(tr.querySelector('.item-price').value) || 0;
+            const total = qty * price;
+            tr.querySelector('.item-total').innerText = total.toFixed(2);
+            calcGrandTotal();
+        }
+
+        function calcGrandTotal() {
+            let grand = 0;
+            document.querySelectorAll('.item-total').forEach(td => grand += parseFloat(td.innerText) || 0);
+            document.getElementById('grandTotal').innerText = grand.toFixed(2);
+        }
+
+        function removeRow(rowId) {
+            document.getElementById(rowId).remove();
+            calcGrandTotal();
+        }
+
+        function saveSalesInvoice() {
+            const grandTotal = parseFloat(document.getElementById('grandTotal').innerText) || 0;
+            const paymentType = document.getElementById('paymentType').value;
+            const rows = document.querySelectorAll('#salesTableBody tr');
+            let stock = getStockData();
+
+            if (rows.length === 0 || grandTotal <= 0) {
+                alert("برجاء إدخال أصناف ومبالغ صالحة للبيع!");
+                return;
+            }
+
+            for (let tr of rows) {
+                const cat = tr.querySelector('.sel-cat').value;
+                const type = tr.querySelector('.sel-type').value;
+                const size = tr.querySelector('.sel-size').value;
+                const reqQty = parseFloat(tr.querySelector('.item-qty').value) || 0;
+
+                const item = stock.find(i => normalizeText(i.category) === normalizeText(cat) && normalizeText(i.type) === normalizeText(type) && normalizeText(i.size) === normalizeText(size));
+
+                if (!item || item.quantity < reqQty) {
+                    alert(`❌ الكمية المتاحة في المخزن من (${cat} - ${type} - ${size}) لا تكفي الطلب!`);
+                    return;
+                }
+            }
+
+            rows.forEach(tr => {
+                const cat = tr.querySelector('.sel-cat').value;
+                const type = tr.querySelector('.sel-type').value;
+                const size = tr.querySelector('.sel-size').value;
+                const reqQty = parseFloat(tr.querySelector('.item-qty').value) || 0;
+
+                let item = stock.find(i => normalizeText(i.category) === normalizeText(cat) && normalizeText(i.type) === normalizeText(type) && normalizeText(i.size) === normalizeText(size));
+                item.quantity -= reqQty;
+            });
+
+            saveStockData(stock);
+
+            if (paymentType === 'cash') {
+                updateTreasury(grandTotal, 'in', 'فاتورة مبيعات نقداً');
+            }
+
+            alert("✅ تم إتمام الفاتورة، خصم الكميات من المخزن، وإيداع المبلغ بالخزينة بنجاح!");
+            window.location.reload();
         }
     </script>
 </body>
