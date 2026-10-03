@@ -81,10 +81,12 @@
     <script src="inventory.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            if (checkScreenAccess("purchases", "المشتريات")) {
-                loadSuppliersDatalist();
-                addNewRow();
-            }
+            setTimeout(() => {
+                if (checkScreenAccess("purchases", "المشتريات")) {
+                    loadSuppliersDatalist();
+                    addNewRow();
+                }
+            }, 300);
         });
 
         function loadSuppliersDatalist() {
@@ -106,9 +108,9 @@
             tr.id = rowId;
 
             tr.innerHTML = `
-                <td><input type="text" class="item-cat" list="catDatalist" placeholder="شاي / شاسيه..." oninput="onCategoryChange('${rowId}')"></td>
-                <td><input type="text" class="item-type" list="typeDatalist" placeholder="العروسة / صيني..." oninput="onTypeChange('${rowId}')"></td>
-                <td><input type="text" class="item-size" list="sizeDatalist" placeholder="250ج / 21 بوصة..."></td>
+                <td><input type="text" class="item-cat" list="catDatalist" placeholder="شاي / شاسيه..." onfocus="refreshCatList()" oninput="onCategoryChange('${rowId}')"></td>
+                <td><input type="text" class="item-type" list="typeDatalist" placeholder="العروسة / صيني..." onfocus="refreshTypeList('${rowId}')" oninput="onTypeChange('${rowId}')"></td>
+                <td><input type="text" class="item-size" list="sizeDatalist" placeholder="250ج / 21 بوصة..." onfocus="refreshSizeList('${rowId}')"></td>
                 <td><input type="number" class="item-qty" value="1" min="1" oninput="calcRowTotal('${rowId}')"></td>
                 <td><input type="number" class="item-buy" value="0" step="0.5" oninput="calcRowTotal('${rowId}')"></td>
                 <td><input type="number" class="item-sell" value="0" step="0.5"></td>
@@ -117,20 +119,32 @@
             `;
 
             tbody.appendChild(tr);
+            refreshCatList();
+        }
+
+        function refreshCatList() {
             populateMainCategoryDatalist('catDatalist');
         }
 
-        function onCategoryChange(rowId) {
+        function refreshTypeList(rowId) {
             const row = document.getElementById(rowId);
             const catVal = row.querySelector('.item-cat').value;
             populateSubCategoryDatalist(catVal, 'typeDatalist');
         }
 
-        function onTypeChange(rowId) {
+        function refreshSizeList(rowId) {
             const row = document.getElementById(rowId);
             const catVal = row.querySelector('.item-cat').value;
             const typeVal = row.querySelector('.item-type').value;
             populateSizeDatalist(catVal, typeVal, 'sizeDatalist');
+        }
+
+        function onCategoryChange(rowId) {
+            refreshTypeList(rowId);
+        }
+
+        function onTypeChange(rowId) {
+            refreshSizeList(rowId);
         }
 
         function calcRowTotal(rowId) {
@@ -167,7 +181,6 @@
                 return;
             }
 
-            // 1. حفظ المورد للتنبؤ في المرات القادمة
             if (supplierName) {
                 let suppliers = JSON.parse(localStorage.getItem('app_suppliers')) || [];
                 let idx = suppliers.findIndex(s => normalizeText(s.name) === normalizeText(supplierName));
@@ -184,7 +197,6 @@
                 localStorage.setItem('app_suppliers', JSON.stringify(suppliers));
             }
 
-            // 2. إضافة الأصناف إلى المخزن
             rows.forEach(tr => {
                 const cat = tr.querySelector('.item-cat').value;
                 const type = tr.querySelector('.item-type').value;
@@ -198,12 +210,11 @@
                 }
             });
 
-            // 3. خصم من الخزينة إن كان نقدياً
             if (paymentType === 'cash') {
                 updateTreasury(grandTotal, 'out', `فاتورة مشتريات من المورد: ${supplierName || 'غير محدد'}`);
             }
 
-            alert("✅ تم حفظ فاتورة المشتريات وتحديث المخزن والخزينة بنجاح!");
+            alert("✅ تم حفظ فاتورة المشتريات وتحديث المخزون والخزينة بنجاح!");
             window.location.reload();
         }
     </script>
